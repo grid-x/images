@@ -1,7 +1,10 @@
 FROM buildkite/agent:3.0
 MAINTAINER Joel Hermanns <j.hermanns@gridx.de>
 
-RUN apk add --update --no-cache ca-certificates make
+
+RUN apk update && \
+    apk add ca-certificates make openssl && \
+    update-ca-certificates
 
 # Install kubectl
 ENV KUBECTL_VERSION=1.9.0
