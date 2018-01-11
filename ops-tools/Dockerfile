@@ -37,3 +37,7 @@ RUN wget ${KONTEMPLATE_URL} && \
     tar xvzf *.tar.gz && \
     mv kontemplate /usr/local/bin/ && \
     rm *.tar.gz
+
+ENV KOPS_VERSION=1.8.0
+RUN wget https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64 && \
+    mv kops-linux-amd64 /usr/local/bin/kops
