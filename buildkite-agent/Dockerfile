@@ -1,10 +1,11 @@
 FROM buildkite/agent:3.0
 MAINTAINER Joel Hermanns <j.hermanns@gridx.de>
 
-
 RUN apk update && \
     apk add ca-certificates make openssl && \
     update-ca-certificates
+
+ADD scripts/setup-k8s.sh /usr/local/bin/setup-k8s.sh
 
 # Install kubectl
 ENV KUBECTL_VERSION=1.9.0
