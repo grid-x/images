@@ -31,7 +31,7 @@ if [[ -z $TOKEN ]]; then
     exit 0
 fi
 
-echo $CA_CRT > /tmp/ca.crt
+echo -n $CA_CRT | base64 -d > /tmp/ca.crt
 
 kubectl config set-cluster ${CONTEXT} --server=${SERVER} --certificate-authority=/tmp/ca.crt
 kubectl config set-context ${CONTEXT} --cluster=${CONTEXT}
