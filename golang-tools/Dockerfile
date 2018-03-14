@@ -1,4 +1,5 @@
-FROM golang:1.8
+ARG GO_VERSION=
+FROM golang:${GO_VERSION}
 
 ENV GOLINT_PATH=$GOPATH/src/github.com/golang/lint
 RUN mkdir -p $GOLINT_PATH && cd $GOLINT_PATH && \
