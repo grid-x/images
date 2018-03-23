@@ -2,7 +2,7 @@ BRANCH := $(shell git branch | sed -n -e 's/^\* \(.*\)/\1/p' | sed -e 's/\//_/g'
 TAG := ${BRANCH}-$(shell git rev-parse --short HEAD)
 
 # ignore hidden dirs and current dir
-DIRS := $(shell find . -maxdepth 1 -type d -not -path "./\.*" -not -path "." -not -path "./golang-tools")
+DIRS := $(shell find . -maxdepth 1 -type d -not -path "./\.*" -not -path "." -not -path "./golang-tools" -not -path "./modbus-tools")
 PUSHS := $(addsuffix _push,$(DIRS))
 
 GO_VERSIONS=1.8.7 1.9.4
@@ -13,8 +13,8 @@ MODBUS_TOOLS_PUSHS=$(addsuffix _push,$(MODBUS_TOOLS))
 
 all: docker push
 
-docker: $(DIRS) $(GOLANG_TOOLS)
-push: $(PUSHS) $(GOLANG_TOOLS_PUSHS)
+docker: $(GOLANG_TOOLS) $(DIRS) $(MODBUS_TOOLS)
+push: $(GOLANG_TOOLS_PUSHS) $(PUSHS)  $(MODBUS_TOOLS_PUSHS)
 
 .PHONY: $(DIRS)
 $(DIRS):
