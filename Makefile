@@ -8,6 +8,8 @@ PUSHS := $(addsuffix _push,$(DIRS))
 GO_VERSIONS=1.8.7 1.9.4
 GOLANG_TOOLS=$(addprefix golang-tools_,$(GO_VERSIONS))
 GOLANG_TOOLS_PUSHS=$(addsuffix _push,$(GOLANG_TOOLS))
+MODBUS_TOOLS=$(addprefix modbus-tools_,$(GO_VERSIONS))
+MODBUS_TOOLS_PUSHS=$(addsuffix _push,$(MODBUS_TOOLS))
 
 all: docker push
 
@@ -28,3 +30,10 @@ $(GOLANG_TOOLS):
 
 $(GOLANG_TOOLS_PUSHS):
 	docker push gridx/golang-tools:$(subst _push,,$(subst golang-tools_,,$@))
+
+.PHONY: $(MODBUS_TOOLS)
+$(MODBUS_TOOLS): $(GOLANG_TOOLS)
+	docker build -f modbus-tools/Dockerfile -t gridx/modbus-tools:$(subst modbus-tools_,,$@) --build-arg GO_VERSION=$(subst modbus-tools_,,$@) modbus-tools
+
+$(MODBUS_TOOLS_PUSHS):
+	docker push gridx/modbus-tools:$(subst _push,,$(subst modbus-tools_,,$@))
