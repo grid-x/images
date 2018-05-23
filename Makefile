@@ -5,7 +5,7 @@ TAG := ${BRANCH}-$(shell git rev-parse --short HEAD)
 DIRS := $(shell find . -maxdepth 1 -type d -not -path "./\.*" -not -path "." -not -path "./golang-tools" -not -path "./modbus-tools")
 PUSHS := $(addsuffix _push,$(DIRS))
 
-GO_VERSIONS=1.8.7 1.9.4
+GO_VERSIONS=1.8.7 1.9.4 1.10.2
 GOLANG_TOOLS=$(addprefix golang-tools_,$(GO_VERSIONS))
 GOLANG_TOOLS_PUSHS=$(addsuffix _push,$(GOLANG_TOOLS))
 MODBUS_TOOLS=$(addprefix modbus-tools_,$(GO_VERSIONS))
