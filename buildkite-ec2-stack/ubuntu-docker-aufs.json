@@ -9,9 +9,9 @@
       "spot_price_auto_product": "Linux/UNIX (Amazon VPC)",
       "ssh_username": "ubuntu",
       "ami_name":
-        "buildkite-stack-ubuntu-docker-aufs-{{isotime | clean_ami_name}}",
+        "gridx-buildkite-ec2-stack-ubuntu-docker-aufs-{{isotime | clean_ami_name}}",
       "ami_description":
-        "Buildkite CloudFormation Stack base image (Amazon Linux, buildkite-agent, docker, docker-compose, docker-gc, jq)",
+        "GridX Buildkite EC2 Stack based on buildkite/elastic-ci-stack-for-aws, commit d8344f1",
       "ami_groups": ["all"]
     }
   ],
