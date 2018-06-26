@@ -11,7 +11,13 @@ on_error() {
 	local exitCode="$?"
 	local errorLine="$1"
 
-	/usr/local/bin/cfn-signal \
+	if [[ $exitCode != 0 ]] ; then
+		aws autoscaling set-instance-health \
+			--instance-id "$(curl http://169.254.169.254/latest/meta-data/instance-id)" \
+			--health-status Unhealthy || true
+	fi
+
+	/opt/aws/bin/cfn-signal \
 		--region "$AWS_REGION" \
 		--stack "$BUILDKITE_STACK_NAME" \
 		--reason "Error on line $errorLine: $(tail -n 1 /var/log/elastic-stack.log)" \
@@ -43,7 +49,7 @@ export BUILDKITE_AGENTS_PER_INSTANCE=$BUILDKITE_AGENTS_PER_INSTANCE
 export BUILDKITE_SECRETS_BUCKET=$BUILDKITE_SECRETS_BUCKET
 export AWS_DEFAULT_REGION=$AWS_REGION
 export AWS_REGION=$AWS_REGION
-export PLUGINS_ENABLED="${PLUGINS_ENABLED[*]}"
+export PLUGINS_ENABLED="${PLUGINS_ENABLED[*]-}"
 export BUILDKITE_ECR_POLICY=${BUILDKITE_ECR_POLICY:-none}
 EOF
 
@@ -58,37 +64,34 @@ fi
 # Choose the right agent binary
 ln -s "/usr/bin/buildkite-agent-${BUILDKITE_AGENT_RELEASE}" /usr/bin/buildkite-agent
 
-# Once 3.0 is stable we can just remove this and let the agent do the right thing
-if [[ "${BUILDKITE_AGENT_RELEASE}" == "stable" ]]; then
-	BOOTSTRAP_SCRIPT="/etc/buildkite-agent/bootstrap.sh"
-else
-	BOOTSTRAP_SCRIPT="buildkite-agent bootstrap"
-fi;
+agent_metadata=(
+	"queue=${BUILDKITE_QUEUE}"
+	"docker=${DOCKER_VERSION}"
+	"stack=${BUILDKITE_STACK_NAME}"
+	"buildkite-aws-stack=${BUILDKITE_STACK_VERSION}"
+)
+
+# Split on commas
+if [[ -n "${BUILDKITE_AGENT_TAGS:-}" ]] ; then
+	IFS=',' read -r -a extra_agent_metadata <<< "${BUILDKITE_AGENT_TAGS:-}"
+	agent_metadata=("${agent_metadata[@]}" "${extra_agent_metadata[@]}")
+fi
 
 cat << EOF > /etc/buildkite-agent/buildkite-agent.cfg
 name="${BUILDKITE_STACK_NAME}-${INSTANCE_ID}-%n"
 token="${BUILDKITE_AGENT_TOKEN}"
-meta-data=$(printf 'queue=%s,docker=%s,stack=%s,buildkite-aws-stack=%s' "${BUILDKITE_QUEUE}" "${DOCKER_VERSION}" "${BUILDKITE_STACK_NAME}" "${BUILDKITE_STACK_VERSION}")
-meta-data-ec2=true
-bootstrap-script="${BOOTSTRAP_SCRIPT}"
+tags=$(IFS=, ; echo "${agent_metadata[*]}")
+tags-from-ec2=true
 hooks-path=/etc/buildkite-agent/hooks
 build-path=/var/lib/buildkite-agent/builds
 plugins-path=/var/lib/buildkite-agent/plugins
+experiment="${BUILDKITE_AGENT_EXPERIMENTS}"
 EOF
 
 chown buildkite-agent: /etc/buildkite-agent/buildkite-agent.cfg
 
 for i in $(seq 1 "${BUILDKITE_AGENTS_PER_INSTANCE}"); do
 	touch "/var/log/buildkite-agent-${i}.log"
-
-	# Setup logging first so we capture everything
-	#cat <<- EOF > "/etc/awslogs/config/buildkite-agent-${i}.conf"
-	#[/var/log/buildkite-agent-${i}.log]
-	#file = /var/log/buildkite-agent-${i}.log
-	#log_group_name = /var/log/buildkite-agent.log
-	#log_stream_name = {instance_id}-${i}
-	#datetime_format = %Y-%m-%d %H:%M:%S
-	#EOF
 done
 
 if [[ -n "${BUILDKITE_AUTHORIZED_USERS_URL}" ]] ; then
@@ -115,15 +118,18 @@ LIFECYCLED_SNS_TOPIC=${BUILDKITE_LIFECYCLE_TOPIC}
 LIFECYCLED_HANDLER=/usr/local/bin/stop-agent-gracefully
 EOF
 
-# my kingdom for a decent init system
 systemctl start lifecycled
-#service awslogs restart || true
 
 # wait for docker to start
 next_wait_time=0
 until docker ps || [ $next_wait_time -eq 5 ]; do
-   sleep $(( next_wait_time++ ))
+	sleep $(( next_wait_time++ ))
 done
+
+if ! docker ps ; then
+  echo "Failed to contact docker"
+  exit 1
+fi
 
 for i in $(seq 1 "${BUILDKITE_AGENTS_PER_INSTANCE}"); do
 	cp /etc/buildkite-agent/systemd.tmpl "/lib/systemd/system/buildkite-agent-${i}.service"
@@ -138,4 +144,8 @@ sudo chown -R buildkite-agent:buildkite-agent /var/lib/buildkite-agent
 	--region "$AWS_REGION" \
 	--stack "$BUILDKITE_STACK_NAME" \
 	--resource "AgentAutoScaleGroup" \
-	--exit-code 0
+	--exit-code 0 || (
+		# This will fail if the stack has already completed, for instance if there is a min size
+		# of 1 and this is the 2nd instance. This is ok, so we just ignore the erro
+		echo "Signal failed"
+	)
