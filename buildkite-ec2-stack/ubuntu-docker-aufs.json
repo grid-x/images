@@ -49,6 +49,17 @@
     {
       "type": "shell",
       "script": "scripts/install-dnsmasq.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/reboot.sh",
+      "expect_disconnect": true
+    },
+    {
+      "type": "shell",
+      "script": "scripts/test.sh",
+      "pause_before": "10s",
+      "environment_vars": ["DOCKER_FS=aufs"]
     }
   ]
 }
