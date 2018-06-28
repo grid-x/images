@@ -1,4 +1,4 @@
 {
   "userns-remap": "buildkite-agent",
-  "storage-driver": "overlay2"
+  "storage-driver": "aufs"
 }

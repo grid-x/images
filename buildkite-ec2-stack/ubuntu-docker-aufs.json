@@ -36,6 +36,10 @@
     },
     {
       "type": "shell",
+      "script": "scripts/install-aufs.sh"
+    },
+    {
+      "type": "shell",
       "script": "scripts/install-docker.sh"
     },
     {
