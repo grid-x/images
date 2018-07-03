@@ -1,0 +1,65 @@
+{
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "eu-central-1",
+      "source_ami": "ami-c7e0c82c",
+      "instance_type": "i3.large",
+      "spot_price": "auto",
+      "spot_price_auto_product": "Linux/UNIX (Amazon VPC)",
+      "ssh_username": "ubuntu",
+      "ami_name":
+        "gridx-buildkite-ec2-stack-ubuntu-docker-aufs-{{isotime | clean_ami_name}}",
+      "ami_description":
+        "GridX Buildkite EC2 Stack based on buildkite/elastic-ci-stack-for-aws, commit d8344f1",
+      "ami_groups": ["all"]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "conf",
+      "destination": "/tmp"
+    },
+    {
+      "type": "file",
+      "source": "plugins",
+      "destination": "/tmp/plugins"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install-utils.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install-lifecycled.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install-aufs.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install-docker.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install-buildkite-agent.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/install-dnsmasq.sh"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/reboot.sh",
+      "expect_disconnect": true
+    },
+    {
+      "type": "shell",
+      "script": "scripts/test.sh",
+      "pause_before": "10s",
+      "environment_vars": ["DOCKER_FS=aufs"]
+    }
+  ]
+}
