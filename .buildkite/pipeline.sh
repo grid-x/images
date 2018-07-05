@@ -24,6 +24,7 @@ ROOT_PIPELINE_CONFIG=.buildkite/pipeline.config.json
 export IMAGE_PIPELINE_CONFIG=pipeline.config.json
 export IMAGES_ENABLED=/tmp/images_enabled
 export PIPELINE_OUT=.buildkite/pipeline.json
+export PIPELINE_TMP=/tmp/pipeline.json
 export STEPS_DIR=.buildkite/steps
 
 # diff current commit to last
@@ -83,6 +84,7 @@ main() {
     # init temporary files
     rm ${IMAGES_ENABLED} 2> /dev/null || true
     rm ${PIPELINE_OUT} 2> /dev/null || true
+    rm ${PIPELINE_TMP} 2> /dev/null || true
     touch ${PIPELINE_OUT}
 
     # enable images if needed
@@ -98,6 +100,12 @@ main() {
     # iterate over build groups (e.g. build, test, ...)
     for GROUP in $(jq -r '.groups[].id' ${ROOT_PIPELINE_CONFIG}); do
         echo -e "\n+++ Group $GROUP"
+
+        # add wait step before the next group
+        # HACK: in-place editing does not work with jq
+        jq '.steps[.steps | length] = "wait"' ${PIPELINE_OUT} > ${PIPELINE_TMP}
+        cp ${PIPELINE_TMP} ${PIPELINE_OUT}
+
         # iterate over images that need to be rebuilt
         while read IMAGE_NAME; do
             # get step from image pipeline config
