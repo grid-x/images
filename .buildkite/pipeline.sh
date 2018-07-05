@@ -102,9 +102,9 @@ main() {
         pipelineEnableAll 0
     fi
 
-    # iterate over build groups (e.g. build, test, ...)
-    for GROUP in $(jq -r '.groups[].id' ${ROOT_PIPELINE_CONFIG}); do
-        echo -e "\n+++ Group $GROUP"
+    # iterate over job groups (e.g. build, test, ...)
+    for GROUP in $(jq -r '.job_groups[].id' ${ROOT_PIPELINE_CONFIG}); do
+        echo -e "\n+++ Group \"$GROUP\""
 
         # add wait step before the next group
         # this produces no output for the first iteration
