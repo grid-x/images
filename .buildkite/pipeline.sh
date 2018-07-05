@@ -1,31 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-############################
 #
-# Dynamic Buildkite Pipeline
+#  *Dynamic Buildkite Pipeline*
 #
-# DESCRIPTION:
-#   diffs current commit to previous
-#   to decide which images need to be rebuilt.
+#   DESCRIPTION:
+#     Generates a pipeline for images inside image folder,
+#     for usage with Buildkite.
 #
-#   if an image needs a rebuild, this script will concat
-#   the images pipeline config onto the global pipeline template.
+#     The pipeline is split up into job groups, which run sequentially.
+#     Individual images use predifined steps for each job group,
+#     as set up in JSON-encoded config files.
 #
-#   if there are changes outside the images folder,
-#   fall back to rebuilding all images.
+#     Diffs current commit to previous to decide
+#     which images need to be rebuilt.
+#     If there are changes outside the images folder,
+#     fall back to rebuilding all images.
 #
-# USAGE:
-#   .buildkite/pipeline.sh && buildkite-agent pipeline upload
+#     Individual images define a JSON-formatted config file,
 #
-###########################
+#   USAGE:
+#     .buildkite/pipeline.sh && buildkite-agent pipeline upload
+#
 
-ROOT_PIPELINE_CONFIG=.buildkite/pipeline.config.json
-export IMAGE_PIPELINE_CONFIG=pipeline.config.json
+
+ROOT_PIPELINE_CONFIG=.buildkite/pipeline.config.json # defines job groups
+export STEPS_DIR=.buildkite/steps                    # steps available for use in job group
+export IMAGE_PIPELINE_CONFIG=pipeline.config.json    # image association: job group -> step
+
 export IMAGES_ENABLED=/tmp/images_enabled
 export PIPELINE_OUT=.buildkite/pipeline.json
 export PIPELINE_TMP=/tmp/pipeline.json
-export STEPS_DIR=.buildkite/steps
 
 # diff current commit to last
 commitGetDiff() {
@@ -102,6 +107,8 @@ main() {
         echo -e "\n+++ Group $GROUP"
 
         # add wait step before the next group
+        # this produces no output for the first iteration
+        # due to pipeline being empty.
         # HACK: in-place editing does not work with jq
         jq '.steps[.steps | length] = "wait"' ${PIPELINE_OUT} > ${PIPELINE_TMP}
         cp ${PIPELINE_TMP} ${PIPELINE_OUT}
@@ -115,12 +122,16 @@ main() {
                 continue
             fi
 
+            # step was not found, fatal error
+            # TODO: support image-specific custom steps
             if [ ! -f ${STEPS_DIR}/${STEP}.json ]; then
                 printf "%-40s \e[31m⚠ step %s does not exist\e[39m\n" ${IMAGE_NAME} ${STEP}
                 exit 1
             fi
 
-            # concat steps into final pipeline
+            # concat steps onto final pipeline,
+            # inject `IMAGE_NAME` env variable,
+            # prepend image name to step name
             jq -n \
                 --arg image_name "${IMAGE_NAME}" \
                 --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
