@@ -1,0 +1,12 @@
+[
+  {
+    "name": ":docker:",
+    "command": ".bin/docker_build.sh",
+    "branches": "!master"
+  },
+  {
+    "name": ":docker:",
+    "command": [".bin/docker_build.sh", ".bin/docker_push.sh"],
+    "branches": "master"
+  }
+]

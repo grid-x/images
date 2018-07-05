@@ -20,9 +20,11 @@ set -euo pipefail
 #
 ###########################
 
-ROOT_PIPELINE_TEMPLATE=.buildkite/pipeline.template.yaml
-export IMAGES_DIR=images
-export IMAGES_PIPELINE_CONFIG=pipeline.yaml
+ROOT_PIPELINE_CONFIG=.buildkite/pipeline.config.json
+export IMAGE_PIPELINE_CONFIG=pipeline.config.json
+export IMAGES_ENABLED=/tmp/images_enabled
+export PIPELINE_FINAL=/tmp/pipeline_final
+export STEPS_DIR=.buildkite/steps
 
 # diff current commit to last
 commitGetDiff() {
@@ -43,11 +45,11 @@ imagesList() {
 # rebuild image, if possible
 imageEnable() {
     IMAGE_ID="$1"
-    if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}" ]; then
-        printf "%-40s ⚠ need rebuild - pipeline missing\n" $1 >&2
+    if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGE_PIPELINE_CONFIG}" ]; then
+        printf "%-40s ⚠ need rebuild - config missing\n" $1 >&2
     else
         printf "%-40s ✖ need rebuild\n" $1 >&2
-        cat "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}"
+        echo "${IMAGE_ID}" >> ${IMAGES_ENABLED}
     fi
 }
 export -f imageEnable
@@ -78,7 +80,12 @@ pipelineEnableAll() {
 }
 
 main() {
-    cat "${ROOT_PIPELINE_TEMPLATE}"
+    # init temporary files
+    rm ${IMAGES_ENABLED} 2> /dev/null || true
+    rm ${PIPELINE_FINAL} 2> /dev/null || true
+    touch ${PIPELINE_FINAL}
+
+    # enable images if needed
     echo "+++ Checking images" >&2
     if commitIsDirty; then
         echo -e "commit is dirty, enabling pipeline for all images \n" >&2
@@ -87,6 +94,29 @@ main() {
         echo -e "commit is clean, enabling pipeline for changed images only \n" >&2
         pipelineEnableAll 0
     fi
+
+    # iterate over build groups (e.g. build, test, ...)
+    for GROUP in $(jq -r '.groups[].id' ${ROOT_PIPELINE_CONFIG}); do
+        echo -e "\n+++ $GROUP group" >& 2
+        # iterate over images that need to be rebuilt
+        while read IMAGE_NAME; do
+            # get step from image pipeline config
+            STEP=$(jq -r ".steps.${GROUP}" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
+            if [ "$STEP" == "null" ]; then
+                continue
+            fi
+            printf "%-40s %s\n" ${IMAGE_NAME} ${STEP} >&2
+            # concat steps into final pipeline
+            jq -n \
+                --arg image_name "${IMAGE_NAME}" \
+                --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
+                '$steps[] | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name) as $steps | {"steps": $steps }' ${PIPELINE_FINAL}
+
+        done <${IMAGES_ENABLED}
+    done
+
+    # pipe final config to buildkite-agent upload
+    cat ${PIPELINE_FINAL}
 }
 
 main
