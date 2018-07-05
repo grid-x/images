@@ -16,12 +16,11 @@ set -euo pipefail
 #   fall back to rebuilding all images.
 #
 # USAGE:
-#   .buildkite/pipeline.sh && buildkite-agent pipeline upload
+#   .buildkite/pipeline.sh | buildkite-agent pipeline upload
 #
 ###########################
 
 ROOT_PIPELINE_TEMPLATE=.buildkite/pipeline.template.yaml
-export ROOT_PIPELINE_CONFIG=.buildkite/pipeline.yaml
 export IMAGES_DIR=images
 export IMAGES_PIPELINE_CONFIG=pipeline.yaml
 
@@ -45,10 +44,10 @@ imagesList() {
 imageEnable() {
     IMAGE_ID="$1"
     if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}" ]; then
-        printf "%-40s ⚠ need rebuild - pipeline missing\n" $1
+        printf "%-40s ⚠ need rebuild - pipeline missing\n" $1 >&2
     else
-        printf "%-40s ✖ need rebuild\n" $1
-        cat "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}" >> ${ROOT_PIPELINE_CONFIG}
+        printf "%-40s ✖ need rebuild\n" $1 >&2
+        cat "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}"
     fi
 }
 export -f imageEnable
@@ -61,7 +60,7 @@ imageEnableMaybe() {
         # commit or image is dirty, try to rebuild
         imageEnable $1
     else
-        printf "%-40s ✓ up to date\n" ${IMAGE_ID}
+        printf "%-40s ✓ up to date\n" ${IMAGE_ID} >&2
     fi
 }
 export -f imageEnableMaybe
@@ -82,10 +81,10 @@ main() {
     cat "${ROOT_PIPELINE_TEMPLATE}"
     echo "+++ Checking images" >&2
     if commitIsDirty; then
-        echo -e "commit is dirty, enabling pipeline for all images \n"
+        echo -e "commit is dirty, enabling pipeline for all images \n" >&2
         pipelineEnableAll 1
     else
-        echo -e "commit is clean, enabling pipeline for changed images only \n"
+        echo -e "commit is clean, enabling pipeline for changed images only \n" >&2
         pipelineEnableAll 0
     fi
 }
