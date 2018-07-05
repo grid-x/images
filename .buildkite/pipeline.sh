@@ -46,9 +46,9 @@ imagesList() {
 imageEnable() {
     IMAGE_ID="$1"
     if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGE_PIPELINE_CONFIG}" ]; then
-        printf "%-40s ⚠ need rebuild - config missing\n" $1 >&2
+        printf "%-40s \e[31m⚠ need rebuild - config missing\e[39m\n" $1 >&2
     else
-        printf "%-40s ✖ need rebuild\n" $1 >&2
+        printf "%-40s \e[33m✖ need rebuild\e[39m\n" $1 >&2
         echo "${IMAGE_ID}" >> ${IMAGES_ENABLED}
     fi
 }
@@ -62,7 +62,7 @@ imageEnableMaybe() {
         # commit or image is dirty, try to rebuild
         imageEnable $1
     else
-        printf "%-40s ✓ up to date\n" ${IMAGE_ID} >&2
+        printf "%-40s \e[32m✓ up to date\e[39m\n" ${IMAGE_ID} >&2
     fi
 }
 export -f imageEnableMaybe
@@ -88,10 +88,10 @@ main() {
     # enable images if needed
     echo "+++ Checking images" >&2
     if commitIsDirty; then
-        echo -e "commit is dirty, enabling pipeline for all images \n" >&2
+        printf "\e[33mcommit is dirty, enabling pipeline for all images\e[39m\n" >&2
         pipelineEnableAll 1
     else
-        echo -e "commit is clean, enabling pipeline for changed images only \n" >&2
+        printf "\e[32mcommit is clean, enabling pipeline for changed images only\e[39m\n" >&2
         pipelineEnableAll 0
     fi
 
@@ -103,15 +103,17 @@ main() {
             # get step from image pipeline config
             STEP=$(jq -r ".steps.${GROUP}" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
             if [ "$STEP" == "null" ]; then
+                printf "%-40s \e[33m✖ no step defined\e[39m\n" ${IMAGE_NAME}>&2
                 continue
             fi
-            printf "%-40s %s\n" ${IMAGE_NAME} ${STEP} >&2
+            printf "%-40s \e[32m%s\e[39m\n" ${IMAGE_NAME} ${STEP} >&2
             # concat steps into final pipeline
             jq -n \
                 --arg image_name "${IMAGE_NAME}" \
                 --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
                 '$steps[] | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name) as $steps | {"steps": $steps }' ${PIPELINE_FINAL}
 
+            printf "%-40s \e[32m✓ using step %s\e[39m\n" ${IMAGE_NAME} ${STEP} >&2
         done <${IMAGES_ENABLED}
     done
 
