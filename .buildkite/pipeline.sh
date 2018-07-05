@@ -106,7 +106,12 @@ main() {
                 printf "%-40s \e[33m✖ no step defined\e[39m\n" ${IMAGE_NAME}>&2
                 continue
             fi
-            printf "%-40s \e[32m%s\e[39m\n" ${IMAGE_NAME} ${STEP} >&2
+
+            if [ ! -f ${STEPS_DIR}/${STEP}.json ]; then
+                printf "%-40s \e[31m⚠ step %s does not exist\e[39m\n" ${IMAGE_NAME} ${STEP} >&2
+                exit 1
+            fi
+
             # concat steps into final pipeline
             jq -n \
                 --arg image_name "${IMAGE_NAME}" \
