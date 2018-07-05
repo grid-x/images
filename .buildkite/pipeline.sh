@@ -73,7 +73,8 @@ main() {
     rm ${IMAGES_ENABLED} 2> /dev/null || true
     rm ${PIPELINE_OUT}   2> /dev/null || true
     rm ${PIPELINE_TMP}   2> /dev/null || true
-    touch ${PIPELINE_OUT}
+
+    jq -n '{"steps": []}' > ${PIPELINE_OUT}
 
     echo "+++ Checking images"
 
@@ -121,10 +122,15 @@ main() {
             # inject `IMAGE_NAME` env variable,
             # prepend image name to step name,
             # save in `PIPELINE_OUT`.
-            jq -n \
+            # HACK: in-place editing does not work with jq
+            jq \
                 --arg image_name "${IMAGE_NAME}" \
                 --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
-                '$steps[] | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name) as $steps | {"steps": $steps }' > ${PIPELINE_OUT}
+                'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name))) | .steps = (.steps | flatten)' \
+                "${PIPELINE_OUT}" \
+                > ${PIPELINE_TMP}
+            cp ${PIPELINE_TMP} ${PIPELINE_OUT}
+
             printf "%-40s \e[32m✓ using step '%s'\e[39m\n" ${IMAGE_NAME} ${STEP}
         done <${IMAGES_ENABLED}
     done
