@@ -32,6 +32,7 @@ export IMAGES_ENABLED=/tmp/images_enabled
 export PIPELINE_OUT=.buildkite/pipeline.json
 export PIPELINE_TMP=/tmp/pipeline.json
 
+
 # diff current commit to last
 commitGetDiff() {
     git diff ${BUILDKITE_COMMIT}..master --name-only
@@ -43,36 +44,6 @@ commitIsDirty() {
     commitGetDiff | grep -qcv ${IMAGES_DIR}
 }
 
-# get list of all images
-imagesList() {
-    find ./${IMAGES_DIR} -mindepth 1 -maxdepth 1 -type d -exec basename {} \;
-}
-
-# rebuild image, if possible
-imageEnable() {
-    IMAGE_ID="$1"
-    if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGE_PIPELINE_CONFIG}" ]; then
-        printf "%-40s \e[31m⚠ need rebuild - config missing\e[39m\n" $1
-    else
-        printf "%-40s \e[33m✖ need rebuild\e[39m\n" $1
-        echo "${IMAGE_ID}" >> ${IMAGES_ENABLED}
-    fi
-}
-export -f imageEnable
-
-# if a specific image needs a rebuild, enable its pipeline
-imageEnableMaybe() {
-    IMAGE_ID="$1"
-    COMMIT_IS_DIRTY="$2"
-    if [ "${COMMIT_IS_DIRTY}" -eq 1 ] || imageIsDirty ${IMAGE_ID}; then
-        # commit or image is dirty, try to rebuild
-        imageEnable $1
-    else
-        printf "%-40s \e[32m✓ up to date\e[39m\n" ${IMAGE_ID}
-    fi
-}
-export -f imageEnableMaybe
-
 # check for changes inside specific image folder
 imageIsDirty() {
     IMAGE_ID="$1"
@@ -80,27 +51,44 @@ imageIsDirty() {
 }
 export -f imageIsDirty
 
-pipelineEnableAll() {
-    COMMIT_IS_DIRTY="$1"
-    imagesList | xargs -n1 -I{} bash -c "imageEnableMaybe {} ${COMMIT_IS_DIRTY}"
+# if a specific image needs a rebuild, enable its pipeline
+imageEnableMaybe() {
+    IMAGE_ID="$1"
+    COMMIT_IS_DIRTY="$2"
+    if [ "${COMMIT_IS_DIRTY}" -eq 1 ] || imageIsDirty ${IMAGE_ID}; then
+        if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGE_PIPELINE_CONFIG}" ]; then
+            printf "%-40s \e[31m⚠ need rebuild - config missing\e[39m\n" $1
+        else
+            printf "%-40s \e[33m✖ need rebuild\e[39m\n" $1
+            echo "${IMAGE_ID}" >> ${IMAGES_ENABLED}
+        fi
+    else
+        printf "%-40s \e[32m✓ up to date\e[39m\n" ${IMAGE_ID}
+    fi
 }
+export -f imageEnableMaybe
 
 main() {
     # init temporary files
     rm ${IMAGES_ENABLED} 2> /dev/null || true
-    rm ${PIPELINE_OUT} 2> /dev/null || true
-    rm ${PIPELINE_TMP} 2> /dev/null || true
+    rm ${PIPELINE_OUT}   2> /dev/null || true
+    rm ${PIPELINE_TMP}   2> /dev/null || true
     touch ${PIPELINE_OUT}
 
-    # enable images if needed
     echo "+++ Checking images"
+
+    # dirty commit overwrites clean image state
     if commitIsDirty; then
         printf "\e[33mcommit is dirty, enabling pipeline for all images\e[39m\n"
-        pipelineEnableAll 1
+        COMMIT_IS_DIRTY=1
     else
         printf "\e[32mcommit is clean, enabling pipeline for changed images only\e[39m\n"
-        pipelineEnableAll 0
+        COMMIT_IS_DIRTY=0
     fi
+
+    # iterate over images and enable suitable
+    find ./${IMAGES_DIR} -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | \
+        xargs -n1 -I{} bash -c "imageEnableMaybe {} ${COMMIT_IS_DIRTY}"
 
     # iterate over job groups (e.g. build, test, ...)
     for GROUP in $(jq -r '.job_groups[].id' ${ROOT_PIPELINE_CONFIG}); do
@@ -131,7 +119,8 @@ main() {
 
             # concat steps onto final pipeline,
             # inject `IMAGE_NAME` env variable,
-            # prepend image name to step name
+            # prepend image name to step name,
+            # save in `PIPELINE_OUT`.
             jq -n \
                 --arg image_name "${IMAGE_NAME}" \
                 --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
@@ -140,6 +129,7 @@ main() {
         done <${IMAGES_ENABLED}
     done
 
+    # display final config for debug purpose
     echo -e "\n--- Config built"
     jq '.' ${PIPELINE_OUT}
 }
