@@ -1,5 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
+
+############################
+#
+# Dynamic Buildkite Pipeline
+#
+# DESCRIPTION:
+#   diffs current commit to previous
+#   to decide which images need to be rebuilt.
+#
+#   if an image needs a rebuild, this script will concat
+#   the images pipeline config onto the global pipeline template.
+#
+#   if there are changes outside the images folder,
+#   fall back to rebuilding all images.
+#
+# USAGE:
+#   .buildkite/pipeline.sh && buildkite-agent pipeline upload
+#
+###########################
 
 ROOT_PIPELINE_TEMPLATE=.buildkite/pipeline.template.yaml
 export ROOT_PIPELINE_CONFIG=.buildkite/pipeline.yaml
@@ -23,46 +42,51 @@ imagesList() {
 }
 
 # rebuild image, if possible
-imageTrigger() {
-    if [ ! -f "${IMAGES_DIR}/$1/${IMAGES_PIPELINE_CONFIG}" ]; then
-        printf "%-30s ⚠ need rebuild - pipeline missing\n" $1
+imageEnable() {
+    IMAGE_ID="$1"
+    if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}" ]; then
+        printf "%-40s ⚠ need rebuild - pipeline missing\n" $1
     else
-        printf "%-30s ✖ need rebuild\n" $1
-        cat "${IMAGES_DIR}/$1/${IMAGES_PIPELINE_CONFIG}" >> ${ROOT_PIPELINE_CONFIG}
+        printf "%-40s ✖ need rebuild\n" $1
+        cat "${IMAGES_DIR}/${IMAGE_ID}/${IMAGES_PIPELINE_CONFIG}" >> ${ROOT_PIPELINE_CONFIG}
     fi
 }
-export -f imageTrigger
+export -f imageEnable
+
+# if a specific image needs a rebuild, enable its pipeline
+imageEnableMaybe() {
+    IMAGE_ID="$1"
+    COMMIT_IS_DIRTY="$2"
+    if [ "${COMMIT_IS_DIRTY}" -eq 1 ] || imageIsDirty ${IMAGE_ID}; then
+        # commit or image is dirty, try to rebuild
+        imageEnable $1
+    else
+        printf "%-40s ✓ up to date\n" ${IMAGE_ID}
+    fi
+}
+export -f imageEnableMaybe
 
 # check for changes inside specific image folder
 imageIsDirty() {
-   commitGetDiff | grep -qc "^${IMAGES_DIR}/$1"
+    IMAGE_ID="$1"
+    commitGetDiff | grep -qc "^${IMAGES_DIR}/${IMAGE_ID}"
 }
 export -f imageIsDirty
 
-# if a specific image needs a rebuild, trigger its pipeline
-imageTriggerMaybe() {
-    if [ "$2" -eq 1 ] || imageIsDirty $1; then
-        # commit or image is dirty, try to rebuild
-        imageTrigger $1
-    else
-        printf "%-30s ✓ up to date\n" $1
-    fi
-}
-export -f imageTriggerMaybe
-
-pipelineTriggerAll() {
-    imagesList | xargs -n1 -I{} bash -c "imageTriggerMaybe {} $1"
+pipelineEnableAll() {
+    COMMIT_IS_DIRTY="$1"
+    imagesList | xargs -n1 -I{} bash -c "imageEnableMaybe {} ${COMMIT_IS_DIRTY}"
 }
 
 main() {
-    rm "${ROOT_PIPELINE_CONFIG}"
-    cp "${ROOT_PIPELINE_TEMPLATE}" "${ROOT_PIPELINE_CONFIG}"
+    cat "${ROOT_PIPELINE_TEMPLATE}"
+    echo "+++ Checking images" >&2
     if commitIsDirty; then
-        echo -e "commit is dirty, triggering pipeline for all images \n"
-        pipelineTriggerAll 1
+        echo -e "commit is dirty, enabling pipeline for all images \n"
+        pipelineEnableAll 1
     else
-        echo -e "commit is clean, triggering pipeline for changed images only \n"
-        pipelineTriggerAll 0
+        echo -e "commit is clean, enabling pipeline for changed images only \n"
+        pipelineEnableAll 0
     fi
 }
 
