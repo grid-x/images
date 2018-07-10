@@ -118,15 +118,20 @@ main() {
                 exit 1
             fi
 
+            # get step specific env variables
+            STEP_ENV=$(jq -c ".steps.${GROUP}.env" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
+
             # concat steps onto final pipeline,
+            # inject step specific env variables,
             # inject `IMAGE_NAME` env variable,
             # prepend image name to step name,
             # save in `PIPELINE_OUT`.
             # HACK: in-place editing does not work with jq
             jq \
                 --arg image_name "${IMAGE_NAME}" \
+                --argjson step_env "${STEP_ENV}" \
                 --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
-                'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name))) | .steps = (.steps | flatten)' \
+                'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env=$step_env) | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name))) | .steps = (.steps | flatten)' \
                 "${PIPELINE_OUT}" \
                 > ${PIPELINE_TMP}
             cp ${PIPELINE_TMP} ${PIPELINE_OUT}
