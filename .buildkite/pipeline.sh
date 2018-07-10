@@ -55,7 +55,9 @@ export -f imageIsDirty
 imageEnableMaybe() {
     IMAGE_ID="$1"
     COMMIT_IS_DIRTY="$2"
-    if [ "${COMMIT_IS_DIRTY}" -eq 1 ] || imageIsDirty ${IMAGE_ID}; then
+    if [ -f ${IMAGES_DIR}/${IMAGE_ID}/.ignore ]; then
+        printf "%-40s \e[33m− ignored\e[39m\n" $1
+    elif [ "${COMMIT_IS_DIRTY}" -eq 1 ] || imageIsDirty ${IMAGE_ID}; then
         if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGE_PIPELINE_CONFIG}" ]; then
             printf "%-40s \e[31m⚠ need rebuild - config missing\e[39m\n" $1
         else
