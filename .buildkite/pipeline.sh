@@ -78,8 +78,6 @@ main() {
 
     jq -n '{"steps": []}' > ${PIPELINE_OUT}
 
-    echo "+++ Checking images"
-
     # dirty commit overwrites clean image state
     if commitIsDirty; then
         printf "\e[33mcommit is dirty, enabling pipeline for all images\e[39m\n"
@@ -88,6 +86,8 @@ main() {
         printf "\e[32mcommit is clean, enabling pipeline for changed images only\e[39m\n"
         COMMIT_IS_DIRTY=0
     fi
+
+    echo "+++ Checking images"
 
     # iterate over images and enable suitable
     find ./${IMAGES_DIR} -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | \
@@ -106,39 +106,57 @@ main() {
 
         # iterate over images that need to be rebuilt
         while read IMAGE_NAME; do
-            # get step from image pipeline config
-            STEP=$(jq -r ".steps.${GROUP}.id" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
-            if [ "$STEP" == "null" ]; then
-                printf "%-40s \e[33m✖ no step defined\e[39m\n" ${IMAGE_NAME}
-                continue
-            fi
 
-            # step was not found, fatal error
-            # TODO: support image-specific custom steps
-            if [ ! -f ${STEPS_DIR}/${STEP}.json ]; then
-                printf "%-40s \e[31m⚠ step %s does not exist\e[39m\n" ${IMAGE_NAME} ${STEP}
-                exit 1
-            fi
+            # get jobs from image pipeline config
+            for JOB in $(jq -c '.[]' "${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG}"); do
 
-            # get step specific env variables
-            STEP_ENV=$(jq -c ".steps.${GROUP}.env" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
+                # optional job name
+                JOB_NAME=$(echo "$JOB" | jq -r ".name")
+                if [ "${JOB_NAME}" != "null" ]; then
+                    FRIENDLY_NAME="${IMAGE_NAME}: ${JOB_NAME}"
+                else
+                    FRIENDLY_NAME="${IMAGE_NAME}"
+                fi
 
-            # concat steps onto final pipeline,
-            # inject step specific env variables,
-            # inject `IMAGE_NAME` env variable,
-            # prepend image name to step name,
-            # save in `PIPELINE_OUT`.
-            # HACK: in-place editing does not work with jq
-            jq \
-                --arg image_name "${IMAGE_NAME}" \
-                --argjson step_env "${STEP_ENV}" \
-                --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
-                'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env=$step_env) | map(.env.IMAGE_NAME=$image_name | .name=$image_name + " " + .name))) | .steps = (.steps | flatten)' \
-                "${PIPELINE_OUT}" \
-                > ${PIPELINE_TMP}
-            cp ${PIPELINE_TMP} ${PIPELINE_OUT}
+                # get step from image pipeline config
+                STEP=$(echo "$JOB" | jq -r ".steps.${GROUP}.id" )
+                if [ "$STEP" == "null" ]; then
+                    printf "%-40s \e[33m✖ no step defined\e[39m\n" ${FRIENDLY_NAME}
+                    continue
+                fi
 
-            printf "%-40s \e[32m✓ using step '%s'\e[39m\n" ${IMAGE_NAME} ${STEP}
+                # step was not found, fatal error
+                # TODO: support image-specific custom steps
+                if [ ! -f ${STEPS_DIR}/${STEP}.json ]; then
+                    printf "%-40s \e[31m⚠ step %s does not exist\e[39m\n" ${FRIENDLY_NAME} ${STEP}
+                    exit 1
+                fi
+
+                # get step specific env variables
+                STEP_ENV=$(echo "$JOB" | jq -c ".steps.${GROUP}.env")
+
+                # concat steps onto final pipeline,
+                # inject step specific env variables,
+                # inject `IMAGE_NAME` env variable,
+                # prepend image name to step name,
+                # save in `PIPELINE_OUT`.
+                # HACK: in-place editing does not work with jq
+                jq \
+                    --arg friendly_name "${FRIENDLY_NAME}" \
+                    --arg image_name "${IMAGE_NAME}" \
+                    --argjson step_env "${STEP_ENV}" \
+                    --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
+                    'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env=$step_env) | map(.env.IMAGE_NAME=$image_name | .name=$friendly_name + " " + .name))) | .steps = (.steps | flatten)' \
+                    "${PIPELINE_OUT}" \
+                    > ${PIPELINE_TMP}
+                cp ${PIPELINE_TMP} ${PIPELINE_OUT}
+
+                printf "%-40s \e[32m✓ using step '%s'\e[39m\n" "${FRIENDLY_NAME}" ${STEP}
+                if [ "${STEP_ENV}" != "null" ]; then
+                    printf "%40s \e[37m%s\e[39m\n" "" ${STEP_ENV}
+                fi
+
+            done
         done <${IMAGES_ENABLED}
     done
 

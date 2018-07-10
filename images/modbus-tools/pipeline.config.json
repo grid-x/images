@@ -1,11 +1,13 @@
-{
-  "steps": {
-    "build": {
-      "id": "build_docker_with_build_arg",
-      "env": {
-        "BUILD_ARG": "GO_VERSION",
-        "BUILD_ARG_VARIANTS": "1.8.7;1.9.4;1.10.2"
+[
+  {
+    "steps": {
+      "build": {
+        "id": "build_docker_with_build_arg",
+        "env": {
+          "BUILD_ARG": "GO_VERSION",
+          "BUILD_ARG_VARIANTS": "1.8.7;1.9.4;1.10.2"
+        }
       }
     }
   }
-}
+]
