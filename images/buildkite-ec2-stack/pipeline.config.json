@@ -1,0 +1,24 @@
+[
+  {
+    "name": "aufs",
+    "steps": {
+      "build": {
+        "id": "build_packer",
+        "env": {
+          "PACKER_CONFIG_FILE": "ubuntu-docker-aufs.json"
+        }
+      }
+    }
+  },
+  {
+    "name": "overlay2",
+    "steps": {
+      "build": {
+        "id": "build_packer",
+        "env": {
+          "PACKER_CONFIG_FILE": "ubuntu-docker-overlay2.json"
+        }
+      }
+    }
+  }
+]
