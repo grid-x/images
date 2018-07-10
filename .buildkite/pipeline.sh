@@ -105,7 +105,7 @@ main() {
         # iterate over images that need to be rebuilt
         while read IMAGE_NAME; do
             # get step from image pipeline config
-            STEP=$(jq -r ".steps.${GROUP}" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
+            STEP=$(jq -r ".steps.${GROUP}.id" ${IMAGES_DIR}/${IMAGE_NAME}/${IMAGE_PIPELINE_CONFIG})
             if [ "$STEP" == "null" ]; then
                 printf "%-40s \e[33m✖ no step defined\e[39m\n" ${IMAGE_NAME}
                 continue

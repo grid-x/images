@@ -1,5 +1,7 @@
 {
   "steps": {
-    "build": "build_docker"
+    "build": {
+      "id": "build_docker"
+    }
   }
 }
