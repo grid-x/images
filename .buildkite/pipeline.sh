@@ -57,18 +57,41 @@ imageEnableMaybe() {
     COMMIT_IS_DIRTY="$2"
     if [ -f ${IMAGES_DIR}/${IMAGE_ID}/.ignore ]; then
         printf "%-40s \e[33m− ignored\e[39m\n" $1
+        bk_annotate 'images' "<tr><td>-</td><td>${IMAGE_ID}</td><td>Ignored</td></tr>" 'info'
     elif [ "${COMMIT_IS_DIRTY}" -eq 1 ] || imageIsDirty ${IMAGE_ID}; then
         if [ ! -f "${IMAGES_DIR}/${IMAGE_ID}/${IMAGE_PIPELINE_CONFIG}" ]; then
             printf "%-40s \e[31m⚠ need rebuild - config missing\e[39m\n" $1
+            bk_annotate 'images' "<tr><td>⚠</td><td>${IMAGE_ID}</td><td>Need rebuild - config missing</td></tr>" 'error'
         else
             printf "%-40s \e[33m✖ need rebuild\e[39m\n" $1
+            bk_annotate 'images' "<tr><td>✖</td><td>${IMAGE_ID}</td><td>Need rebuild</td></tr>" 'warning'
             echo "${IMAGE_ID}" >> ${IMAGES_ENABLED}
         fi
     else
         printf "%-40s \e[32m✓ up to date\e[39m\n" ${IMAGE_ID}
+        bk_annotate 'images' "<tr><td>✓</td><td>${IMAGE_ID}</td><td>Up to date</td></tr>" 'success'
     fi
 }
 export -f imageEnableMaybe
+
+bk_annotate() {
+    CONTEXT=${1:-default}
+    MESSAGE="$2"
+    STYLE=${3:-null}
+    if [ "${STYLE}" != "null" ]; then
+        buildkite-agent annotate \
+        --style "${STYLE}" \
+        --context "${CONTEXT}" \
+        --append \
+        "${MESSAGE}" &> /dev/null
+    else
+        buildkite-agent annotate \
+        --context "${CONTEXT}" \
+        --append \
+        "${MESSAGE}" &> /dev/null
+    fi
+}
+export -f bk_annotate
 
 main() {
     # init temporary files
@@ -81,21 +104,29 @@ main() {
     # dirty commit overwrites clean image state
     if commitIsDirty; then
         printf "\e[33mcommit is dirty, enabling pipeline for all images\e[39m\n"
+        bk_annotate 'dirty' 'Commit is dirty, enabling pipeline for all images.' 'error'
         COMMIT_IS_DIRTY=1
     else
         printf "\e[32mcommit is clean, enabling pipeline for changed images only\e[39m\n"
+        bk_annotate 'dirty' 'Commit is clean, enabling pipeline for changed images only.' 'success'
         COMMIT_IS_DIRTY=0
     fi
 
     echo "+++ Checking images"
+    bk_annotate 'images' '<table><thead><tr><th></th><th>Image</th><th>Status</th></tr></thead>' 'info'
 
     # iterate over images and enable suitable
     find ./${IMAGES_DIR} -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | \
         xargs -n1 -I{} bash -c "imageEnableMaybe {} ${COMMIT_IS_DIRTY}"
 
+    bk_annotate 'images' '</tbody></table>' 'info'
+
     # iterate over job groups (e.g. build, test, ...)
     for GROUP in $(jq -r '.job_groups[].id' ${ROOT_PIPELINE_CONFIG}); do
         echo -e "\n+++ Group \"$GROUP\""
+        bk_annotate "group-${GROUP}" "<h4>Group: ${GROUP}</h4><table><thead><tr><th></th><th>Image</th><th>Status</th></tr></thead><tbody>" 'info'
+
+        GROUP_IS_DIRTY=0
 
         # add wait step before the next group
         # this produces no output for the first iteration
@@ -121,7 +152,10 @@ main() {
                 # get step from image pipeline config
                 STEP=$(echo "$JOB" | jq -r ".steps.${GROUP}.id" )
                 if [ "$STEP" == "null" ]; then
+                    STEP_DIRTY="true"
                     printf "%-40s \e[33m✖ no step defined\e[39m\n" ${FRIENDLY_NAME}
+                    bk_annotate "group-${GROUP}" "<tr><td>✖</td><td>${FRIENDLY_NAME}</td><td>No step defined</td></tr>" 'warning'
+                    GROUP_IS_DIRTY=1
                     continue
                 fi
 
@@ -129,6 +163,7 @@ main() {
                 # TODO: support image-specific custom steps
                 if [ ! -f ${STEPS_DIR}/${STEP}.json ]; then
                     printf "%-40s \e[31m⚠ step %s does not exist\e[39m\n" ${FRIENDLY_NAME} ${STEP}
+                    bk_annotate "group-${GROUP}" "<tr><td>⚠</td><td>${FRIENDLY_NAME}</td><td>Step »<b>${STEP}</b>« does not exist</td></tr>" 'error'
                     exit 1
                 fi
 
@@ -152,12 +187,21 @@ main() {
                 cp ${PIPELINE_TMP} ${PIPELINE_OUT}
 
                 printf "%-40s \e[32m✓ using step '%s'\e[39m\n" "${FRIENDLY_NAME}" ${STEP}
+                bk_annotate "group-${GROUP}" "<tr><td>✓</td><td>${FRIENDLY_NAME}</td><td>Using step »<b>${STEP}</b>«</td></tr>" 'success'
                 if [ "${STEP_ENV}" != "null" ]; then
                     printf "%40s \e[37m%s\e[39m\n" "" ${STEP_ENV}
+                    bk_annotate "group-${GROUP}" "<tr><td></td><td></td><td><code>${STEP_ENV}</code></td></tr>" 'success'
                 fi
 
             done
         done <${IMAGES_ENABLED}
+
+        if [ "${GROUP_IS_DIRTY}" -eq 1 ]; then
+            bk_annotate "group-${GROUP}" '</tbody></table>' 'warning'
+        else
+            bk_annotate "group-${GROUP}" '</tbody></table>' 'success'
+        fi
+
     done
 
     # display final config for debug purpose
