@@ -2,11 +2,17 @@
   {
     "name": ":docker:",
     "command": ".bin/docker_build.sh",
-    "branches": "!master"
+    "branches": "!master",
+    "agents": {
+      "queue": "packer"
+    }
   },
   {
     "name": ":docker:",
     "command": [".bin/docker_build.sh", ".bin/docker_push.sh"],
-    "branches": "master"
+    "branches": "master",
+    "agents": {
+      "queue": "packer"
+    }
   }
 ]
