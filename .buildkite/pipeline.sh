@@ -41,13 +41,15 @@ export -f commitGetDiff
 
 # check for changes outside images folder
 commitIsDirty() {
-    commitGetDiff | grep -qcv ${IMAGES_DIR}
+    DIFF_RESULTS=$(commitGetDiff | grep -v "^${IMAGES_DIR}")
+    test -n "${DIFF_RESULTS}"
 }
 
 # check for changes inside specific image folder
 imageIsDirty() {
     IMAGE_ID="$1"
-    commitGetDiff | grep -qc "^${IMAGES_DIR}/${IMAGE_ID}"
+    DIFF_RESULTS=$(commitGetDiff | grep "^${IMAGES_DIR}/${IMAGE_ID}")
+    test -n "${DIFF_RESULTS}"
 }
 export -f imageIsDirty
 
