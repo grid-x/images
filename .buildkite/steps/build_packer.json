@@ -1,0 +1,9 @@
+[
+  {
+    "name": ":packer:",
+    "command": ".bin/packer_build.sh",
+    "agents": {
+      "queue": "packer"
+    }
+  }
+]
