@@ -35,7 +35,7 @@ export PIPELINE_TMP=/tmp/pipeline.json
 
 # diff current commit to last
 commitGetDiff() {
-    git diff ${BUILDKITE_COMMIT}..master --name-only
+    git diff ${BUILDKITE_COMMIT}..master~ --name-only
 }
 export -f commitGetDiff
 
