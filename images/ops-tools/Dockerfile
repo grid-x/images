@@ -24,7 +24,7 @@ RUN wget https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER
 ADD scripts/setup-k8s.sh /usr/local/bin/setup-k8s.sh
 
 # Install kubectl
-ENV KUBECTL_VERSION=1.9.0
+ENV KUBECTL_VERSION=1.10.0
 RUN wget https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/
