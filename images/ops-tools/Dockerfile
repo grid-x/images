@@ -46,6 +46,6 @@ RUN wget ${KUBEVAL_URL} && \
     mv kubeval /usr/local/bin/ && \
     rm *.tar.gz
 
-ENV KOPS_VERSION=1.8.0
+ENV KOPS_VERSION=1.10.0
 RUN wget https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64 && \
     mv kops-linux-amd64 /usr/local/bin/kops
