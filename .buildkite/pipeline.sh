@@ -35,7 +35,15 @@ export PIPELINE_TMP=/tmp/pipeline.json
 
 # diff current commit to last
 commitGetDiff() {
-    git diff HEAD..$(git rev-parse origin/master) --name-only
+    if [ "${BUILDKITE_BRANCH}" = "master" ]; then
+        PARENT_COMMIT=HEAD^
+    else
+        PARENT_COMMIT=$(git merge-base --fork-point master)
+    fi
+
+    printf "Comparing HEAD to %s\n" ${PARENT_COMMIT} 1>&2
+
+    git diff ${PARENT_COMMIT}...HEAD --name-only
 }
 export -f commitGetDiff
 
