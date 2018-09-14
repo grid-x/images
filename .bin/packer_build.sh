@@ -8,5 +8,5 @@ CONFIG_FILE=${PACKER_CONFIG_FILE:-packer.json}
 docker run -it \
   -v ${IMAGES_DIR_FULL}:${PACKER_DIR} \
   -w ${PACKER_DIR} \
-  hashicorp/packer:light \
-  build ${CONFIG_FILE}
+  gridx/ops-tools:master-1c1b7b2 \
+  packer build ${CONFIG_FILE}
