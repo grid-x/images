@@ -36,9 +36,9 @@ export PIPELINE_TMP=/tmp/pipeline.json
 # diff current commit to last
 commitGetDiff() {
     if [ "${BUILDKITE_BRANCH}" = "master" ]; then
-        PARENT_COMMIT=HEAD^
+        PARENT_COMMIT=$(git log -2 --merges --pretty=format:"%H" | tail -1)
     else
-        PARENT_COMMIT=$(git merge-base --fork-point master)
+        PARENT_COMMIT=$(git log -1 --merges --pretty=format:"%H" | tail -1)
     fi
 
     printf "Comparing HEAD to %s\n" ${PARENT_COMMIT} 1>&2
