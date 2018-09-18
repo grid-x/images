@@ -38,6 +38,14 @@ RUN wget ${KONTEMPLATE_URL} && \
     mv kontemplate /usr/local/bin/ && \
     rm *.tar.gz
 
+# Install kubeval
+ENV KUBEVAL_VERSION=0.6.0
+ENV KUBEVAL_URL=https://github.com/garethr/kubeval/releases/download/${KUBEVAL_VERSION}/kubeval-linux-amd64.tar.gz
+RUN wget ${KUBEVAL_URL} && \
+    tar xvzf *.tar.gz && \
+    mv kubeval /usr/local/bin/ && \
+    rm *.tar.gz
+
 ENV KOPS_VERSION=1.8.0
 RUN wget https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64 && \
     mv kops-linux-amd64 /usr/local/bin/kops
