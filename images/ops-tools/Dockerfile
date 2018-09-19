@@ -31,8 +31,9 @@ RUN wget https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VE
 
 
 # Install kontemplate
-ENV KONTEMPLATE_VERSION=1.3.0
-ENV KONTEMPLATE_URL=https://github.com/tazjin/kontemplate/releases/download/v${KONTEMPLATE_VERSION}/kontemplate-${KONTEMPLATE_VERSION}-98daa6b-linux-amd64.tar.gz
+ENV KONTEMPLATE_VERSION=1.7.0
+ENV COMMIT_HASH=511ae92
+ENV KONTEMPLATE_URL=https://github.com/tazjin/kontemplate/releases/download/v${KONTEMPLATE_VERSION}/kontemplate-${KONTEMPLATE_VERSION}-${COMMIT_HASH}-linux-amd64.tar.gz
 RUN wget ${KONTEMPLATE_URL} && \
     tar xvzf *.tar.gz && \
     mv kontemplate /usr/local/bin/ && \
