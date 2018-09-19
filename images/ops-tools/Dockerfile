@@ -39,7 +39,7 @@ RUN wget ${KONTEMPLATE_URL} && \
     rm *.tar.gz
 
 # Install kubeval
-ENV KUBEVAL_VERSION=0.6.0
+ENV KUBEVAL_VERSION=0.7.3
 ENV KUBEVAL_URL=https://github.com/garethr/kubeval/releases/download/${KUBEVAL_VERSION}/kubeval-linux-amd64.tar.gz
 RUN wget ${KUBEVAL_URL} && \
     tar xvzf *.tar.gz && \
