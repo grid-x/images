@@ -3,5 +3,5 @@ set -eou pipefail
 
 docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
-chmod +x .bin/docker_build.sh
-.bin/docker_build.sh
+chmod +x .bin/docker_build_with_build_arg.sh
+.bin/docker_build_with_build_arg.sh
