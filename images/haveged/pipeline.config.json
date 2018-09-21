@@ -2,7 +2,10 @@
   {
     "steps": {
       "build": {
-        "id": "build_docker_arm"
+        "id": "build_docker_arm",
+        "env": {
+          "TARGET_ARCH": "multiarch"
+        }
       }
     }
   }
