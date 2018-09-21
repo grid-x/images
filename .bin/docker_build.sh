@@ -9,12 +9,12 @@ DOCKERFILE=Dockerfile
 if [ ! -z ${TARGET_ARCH:-} ]; then 
     TAG=${TAG}-${TARGET_ARCH}
     DOCKERFILE=Dockerfile.${TARGET_ARCH}
-    TARGET_ARCH=${TARGET_ARCH}/
+    TARGET_ARCH=-${TARGET_ARCH}
 fi
 
 docker build -f ${IMAGES_DIR_FULL}/${DOCKERFILE} \
-    -t gridx/${TARGET_ARCH:-}${IMAGE_NAME}${SUFFIX}:$TAG \
+    -t gridx/${IMAGE_NAME}${SUFFIX}${TARGET_ARCH:-}:$TAG \
     ${IMAGES_DIR_FULL}
 
 # tag alias
-docker tag gridx/${TARGET_ARCH:-}${IMAGE_NAME}${SUFFIX}:$TAG gridx/${TARGET_ARCH:-}${IMAGE_NAME}${SUFFIX}
+docker tag gridx/${IMAGE_NAME}${SUFFIX}${TARGET_ARCH:-}:$TAG gridx/${IMAGE_NAME}${SUFFIX}${TARGET_ARCH:-}

@@ -6,12 +6,12 @@ SUFFIX=${IMAGE_NAME_SUFFIX:-}
 
 if [ ! -z ${TARGET_ARCH:-} ]; then 
     TAG=${TAG}-${TARGET_ARCH}
-    TARGET_ARCH=${TARGET_ARCH}/
+    TARGET_ARCH=-${TARGET_ARCH}
 fi
 
 docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
-docker push gridx/${TARGET_ARCH:-}${IMAGE_NAME}${SUFFIX}:$TAG
+docker push gridx/${IMAGE_NAME}${SUFFIX}${TARGET_ARCH:-}:$TAG
 
 
 # push alias
-docker push gridx/${TARGET_ARCH:-}${IMAGE_NAME}${SUFFIX}
+docker push gridx/${IMAGE_NAME}${SUFFIX}${TARGET_ARCH:-}
