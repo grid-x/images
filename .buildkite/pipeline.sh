@@ -191,7 +191,7 @@ main() {
                     --arg image_name "${IMAGE_NAME}" \
                     --argjson step_env "${STEP_ENV}" \
                     --slurpfile steps "${STEPS_DIR}/${STEP}.json" \
-                    'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env=$step_env) | map(.env.IMAGE_NAME=$image_name | .name=$friendly_name + " " + .name))) | .steps = (.steps | flatten)' \
+                    'reduce $steps[] as $step (.; .steps[.steps | length] = ($step | map(.env=.env+$step_env) | map(.env.IMAGE_NAME=$image_name | .name=$friendly_name + " " + .name))) | .steps = (.steps | flatten)' \
                     "${PIPELINE_OUT}" \
                     > ${PIPELINE_TMP}
                 cp ${PIPELINE_TMP} ${PIPELINE_OUT}

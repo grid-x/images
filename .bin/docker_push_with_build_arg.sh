@@ -3,6 +3,7 @@ set -eou pipefail
 
 TAG=$(.bin/git_tag.sh)
 IMAGES_DIR_FULL="${IMAGES_DIR}/${IMAGE_NAME}"
+SUFFIX=${IMAGE_NAME_SUFFIX:-}
 
 docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
 
@@ -10,8 +11,8 @@ docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
 IFS=';' read -ra VARIANTS <<< "${BUILD_ARG_VARIANTS}"
 for VARIANT in "${VARIANTS[@]}"; do
     # push unique image
-    docker push gridx/${IMAGE_NAME}:${TAG}-${VARIANT}
+    docker push gridx/${IMAGE_NAME}${SUFFIX}:${TAG}-${VARIANT}
 
     # push alias
-    docker push gridx/${IMAGE_NAME}:${VARIANT}
+    docker push gridx/${IMAGE_NAME}${SUFFIX}:${VARIANT}
 done

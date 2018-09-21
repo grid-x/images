@@ -1,0 +1,40 @@
+[
+  {
+    "name": ":docker:",
+    "command": ".bin/docker_build.sh",
+    "branches": "!master",
+    "agents": {
+      "queue": "packer"
+    }
+  },
+  {
+    "name": ":docker:",
+    "command": ".bin/docker_build_arm.sh",
+    "branches": "!master",
+    "env": {
+      "IMAGE_NAME_SUFFIX": "-arm"
+    },
+    "agents": {
+      "queue": "packer"
+    }
+  },
+  {
+    "name": ":docker:",
+    "command": [".bin/docker_build.sh", ".bin/docker_push.sh"],
+    "branches": "master",
+    "agents": {
+      "queue": "packer"
+    }
+  },
+  {
+    "name": ":docker:",
+    "command": [".bin/docker_build_arm.sh", ".bin/docker_push.sh"],
+    "branches": "master",
+    "env": {
+      "IMAGE_NAME_SUFFIX": "-arm"
+    },
+    "agents": {
+      "queue": "packer"
+    }
+  }
+]

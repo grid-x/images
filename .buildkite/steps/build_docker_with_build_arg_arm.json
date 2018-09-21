@@ -1,0 +1,21 @@
+[
+  {
+    "name": ":docker:",
+    "command": ".bin/docker_build_with_build_arg_arm.sh",
+    "branches": "!master",
+    "agents": {
+      "queue": "packer"
+    }
+  },
+  {
+    "name": ":docker:",
+    "command": [
+      ".bin/docker_build_with_build_arg_arm.sh",
+      ".bin/docker_push_with_build_arg.sh"
+    ],
+    "branches": "master",
+    "agents": {
+      "queue": "packer"
+    }
+  }
+]
