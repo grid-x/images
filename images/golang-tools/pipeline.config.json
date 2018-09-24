@@ -21,5 +21,17 @@
         }
       }
     }
+  },
+  {
+    "steps": {
+      "build": {
+        "id": "build_docker_with_build_arg_arm",
+        "env": {
+          "TARGET_ARCH": "arm64v8",
+          "BUILD_ARG": "GO_VERSION",
+          "BUILD_ARG_VARIANTS": "1.10.2;1.10.3;1.11"
+        }
+      }
+    }
   }
 ]
