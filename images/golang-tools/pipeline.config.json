@@ -5,7 +5,9 @@
         "id": "build_docker_with_build_arg",
         "env": {
           "BUILD_ARG": "GO_VERSION",
-          "BUILD_ARG_VARIANTS": "1.8.7;1.9.4;1.10.3;1.10.4;1.11"
+          "BUILD_ARG_VARIANTS": "1.8.7;1.9.4;1.10.3;1.10.4;1.11",
+          "GOLINT_COMMITREF": "e14d9b0f1d332b1420c1ffa32562ad2dc84d645d",
+          "GLIDE_COMMITREF": "67790b3dbede72cfdc54aa53be4706322c9499e0"
         }
       }
     }
@@ -17,7 +19,9 @@
         "env": {
           "TARGET_ARCH": "arm32v7",
           "BUILD_ARG": "GO_VERSION",
-          "BUILD_ARG_VARIANTS": "1.10.2;1.10.3;1.11"
+          "BUILD_ARG_VARIANTS": "1.10.2;1.10.3;1.11",
+          "GOLINT_COMMITREF": "e14d9b0f1d332b1420c1ffa32562ad2dc84d645d",
+          "GLIDE_COMMITREF": "67790b3dbede72cfdc54aa53be4706322c9499e0"
         }
       }
     }
@@ -29,7 +33,9 @@
         "env": {
           "TARGET_ARCH": "arm64v8",
           "BUILD_ARG": "GO_VERSION",
-          "BUILD_ARG_VARIANTS": "1.10.2;1.10.3;1.11"
+          "BUILD_ARG_VARIANTS": "1.10.2;1.10.3;1.11",
+          "GOLINT_COMMITREF": "e14d9b0f1d332b1420c1ffa32562ad2dc84d645d",
+          "GLIDE_COMMITREF": "67790b3dbede72cfdc54aa53be4706322c9499e0"
         }
       }
     }
