@@ -1,0 +1,17 @@
+init_config:
+instances:
+  - name: openvpn
+    search_string: ['openvpn']
+    exact_match: False
+  - name: dropbear
+    search_string: ['dropbear']
+    exact_match: False
+  - name: dnsmasq
+    search_string: ['dnsmasq']
+    exact_match: False
+  - name: NetworkManager
+    search_string: ['NetworkManager']
+    exact_match: False
+  - name: mender
+    search_string: ['mender']
+    exact_match: False

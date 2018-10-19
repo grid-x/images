@@ -1,0 +1,12 @@
+[
+  {
+    "steps": {
+      "build": {
+        "id": "build_docker_arm",
+        "env": {
+          "TARGET_ARCH": "arm32v7"
+        }
+      }
+    }
+  }
+]
