@@ -1,0 +1,60 @@
+FROM multiarch/debian-debootstrap:armhf-stretch-slim
+
+ENV DD_HOME=/opt/datadog-agent \	
+    DD_START_AGENT=0 \	
+    DOCKER_DD_AGENT=yes \	
+    AGENT_VERSION=5.26.0 \	
+    DD_ETC_ROOT="/opt/datadog-agent/agent" \	
+    PATH="/opt/datadog-agent/venv/bin:/opt/datadog-agent/agent/bin:${PATH}" \	
+    PYTHONPATH="/opt/datadog-agent/agent" \	
+    DD_CONF_LOG_TO_SYSLOG=no \	
+    NON_LOCAL_TRAFFIC=no \	
+    DD_SUPERVISOR_DELETE_USER=yes \	
+    DD_CONF_PROCFS_PATH="/host/proc" \	
+    DD_PROCESS_AGENT_ENABLED=yes \	
+    DD_APM_ENABLED=no \	
+    DD_TAGS="availability-zone:iot-garden,gridBox"	
+
+ # Install the Agent	
+COPY setup_agent.sh /tmp/setup_agent.sh	
+RUN apt-get update \	
+  && apt-get install --no-install-recommends -y \	
+    ca-certificates \	
+    curl \	
+    procps \	
+    sysstat \	
+    python2.7 \	
+    python2.7-dev \	
+    build-essential \	
+  && sh /tmp/setup_agent.sh \	
+  && rm /tmp/setup_agent.sh \	
+  && apt-get remove -y build-essential \	
+  && apt-get autoremove -y \	
+  && apt-get clean build-essential \	
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*	
+ # Add healthcheck script	
+COPY probe.sh /probe.sh	
+ # Configure the Agent	
+RUN mv ${DD_ETC_ROOT}/datadog.conf.example ${DD_ETC_ROOT}/datadog.conf \	
+  && chmod +x /probe.sh	
+ # Add Docker check	
+COPY conf.d/docker_daemon.yaml ${DD_ETC_ROOT}/conf.d/docker_daemon.yaml	
+# Add Process check	
+COPY conf.d/process.yaml ${DD_ETC_ROOT}/conf.d/process.yaml	
+# Add install and config files	
+COPY entrypoint.sh /entrypoint.sh	
+COPY config_builder.py /config_builder.py	
+
+ # Extra conf.d and checks.d	
+VOLUME ["/conf.d", "/checks.d"]	
+
+ # Expose DogStatsD and trace-agent ports	
+EXPOSE 8125/udp 8126/tcp	
+
+ # Healthcheck	
+HEALTHCHECK --interval=5m --timeout=3s --retries=1 \	
+  CMD ./probe.sh	
+
+WORKDIR ${DD_HOME}	
+ENTRYPOINT ["/entrypoint.sh"]	
+CMD ["supervisord", "-n", "-c", "agent/supervisor.conf"]
