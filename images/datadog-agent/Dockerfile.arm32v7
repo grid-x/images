@@ -3,7 +3,7 @@ FROM multiarch/debian-debootstrap:armhf-stretch-slim
 ENV DD_HOME=/opt/datadog-agent \	
     DD_START_AGENT=0 \	
     DOCKER_DD_AGENT=yes \	
-    AGENT_VERSION=5.26.0 \	
+    AGENT_VERSION=5.27.2 \	
     DD_ETC_ROOT="/opt/datadog-agent/agent" \	
     PATH="/opt/datadog-agent/venv/bin:/opt/datadog-agent/agent/bin:${PATH}" \	
     PYTHONPATH="/opt/datadog-agent/agent" \	
