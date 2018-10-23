@@ -8,7 +8,7 @@ RUN apt-get update -y && apt-get upgrade -y && \
 RUN pip3 install awscli
 
 # Install terraform
-ENV TERRAFORM_VERSION=0.11.8
+ENV TERRAFORM_VERSION=0.11.9
 RUN  wget https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
      unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
      mv terraform /usr/local/bin/ && \
